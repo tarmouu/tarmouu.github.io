@@ -1,0 +1,508 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\definecolor{forestgreen}{RGB}{34, 139, 34}
+
+\usetheme{metropolis}
+%\usecolortheme{beaver}
+
+%\usepackage[dvipsnames]{xcolor}
+
+\usepackage{amssymb}
+
+\usepackage{proof}
+
+
+
+\newcommand{\inl}{\textsf{inl}}
+\newcommand{\inr}{\textsf{inr}}
+
+\newcommand{\K}{^\mathrm{k}}
+
+\newcommand{\tto}{\longrightarrow}
+\newcommand{\ttoK}{\longrightarrow\K}
+
+
+\newcommand{\id}{\textsf{id}}
+\newcommand{\seq}{\mathbin{\triangleright}}
+
+\newcommand{\idK}{\mathsf{id}^{\tiny \blacktriangleright}}
+\newcommand{\seqK}{\mathbin{\blacktriangleright}}
+
+\newcommand{\jd}{\mathsf{jd}}
+\newcommand{\prl}{\parallel}
+
+
+\newcommand{\ema}[1]{\textcolor{blue}{#1}}
+\newcommand{\emb}[1]{\textcolor{forestgreen}{#1}}
+
+\newcommand{\ns}[1]{}
+
+
+\newcommand{\greenb}[1]{{\color{forestgreen}\boxed{\color{black}{#1}}}}
+\newcommand{\redb}[1]{{\color{red}\boxed{\color{black}{#1}}}}
+
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+\newcommand{\gray}[1]{\textcolor{gray}{#1}}
+
+
+
+\title{Effects in parallel, with concurrent monads}
+
+\author{Tarmo Uustalu \\
+  Reykjvik University / Tallinn University of Technology}
+
+\date{Lambda World '26, Torremolinos, 29--30 Oct.\ 2026}
+
+
+\begin{document}
+
+
+\begin{frame}
+
+
+\maketitle  
+
+\end{frame}    
+
+
+
+\begin{frame}
+
+\frametitle{What this is about}
+
+  In functional programming, \ema{monads} are a structure facilitating
+  \emb{sequential composition} of effectful functions
+
+\bigskip
+  
+  Is there a similar thing for \emb{parallel composition}?
+
+  Yes, but underappreciated as such: \ema{applicatives} \gray{[lax
+  monoidal functors]}
+
+\bigskip
+
+  But for \emb{both of the two} at once?
+
+  Yes, and you deserve to know: \ema{concurrent monads}
+  
+
+\end{frame}
+
+
+% \begin{frame}
+
+%   \begin{tabular}{c|c}
+%     monads & concurrent \\
+%            & monads \\[12pt]
+%     \multicolumn{2}{c}{an abstraction for} \\
+%     \multicolumn{2}{c}{programming with} \\[12pt]
+%     effectful operations & effectful operations \\[12pt]
+%     \multicolumn{2}{c}{and} \\[12pt]
+%     sequential composition & sequential composition\\
+%     ~ & parallel composition
+%   \end{tabular}  
+
+
+% \end{frame}
+
+\begin{frame}[fragile]
+
+\frametitle{Monads in Haskell}
+
+{\scriptsize a bit differently than in Prelude}
+
+\scriptsize
+\begin{verbatim}
+class Functor t => Mnd t where
+  return :: x -> t x
+  join :: t (t x) -> t x
+
+newtype Reader s x = R (s -> x)
+
+instance Mnd (Reader s) where
+  return x = R (\ _ -> x)
+  join (R f) = R (\ s -> let R g = f s in g s)  
+
+newtype State s x = S (s -> (s, x))
+
+instance Mnd (State s) where
+  return x = S (\ s -> (s, x))
+  join (S f) = S (\ s -> let (s', S g) = f s in g s')    
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}
+
+\frametitle{The mission of a monad}
+  
+  A monad 
+  provides
+
+  \begin{itemize}
+    
+  \item a combinator for sequential composition \\
+  of functions with some kind of effect
+
+  \item guarantees that it is sensible:
+
+  \begin{itemize}
+
+  \item with the right type
+
+  \item with the right equational property\footnote{if the monad is a monad indeed} \\
+    \gray{(= associativity)}
+
+  \end{itemize}
+
+  \end{itemize}
+  
+\end{frame}
+
+
+
+% \begin{frame}
+
+% \frametitle{Seq comp, with the right type (for exceptions)} 
+  
+%   ($E$ -- a fixed type, for exceptions, $+$ -- disjoint sum) 
+
+% \[  
+%   \infer*[?]{k \seqK \ell = ? : X \tto Z + E}{
+%     k : X \tto \redb{Y + E}
+%     &
+%     \ell : \redb{Y} \tto Z + E
+%   }
+% \]
+
+% \[  
+%   \infer*[?]{\ns{k \seqK \ell = ? :} X \tto \redb{Z + E}}{
+%     k : X \tto \greenb{Y + E}
+%     &
+%     \infer{\greenb{Y + E} \tto \redb{(Z + E) + E}}{
+%       \ell : Y \tto Z + E
+%     }   
+%   }
+% \]
+
+
+% \end{frame}
+
+
+
+% \begin{frame}
+
+% \[  
+%   \infer{k \seqK \ell \ns{= k \seq (\ell + E) \seq \mu_Z} : X \tto \greenb{Z + E}}{
+%     k : X \tto \greenb{Y + E}
+%     &
+%     \infer{(\ell + E) \seq \mu_Z : \greenb{Y + E} \tto Z + E}{
+%        \infer{\ell + E : Y + E \tto (Z + E) + E}{
+%          \ell : Y \tto Z + E
+%        }
+%        &
+%        \ns{\mu_Z =} \blue{[\id_{Z+E}, \inr_{Z,E}]} : (Z + E) + E \tto \greenb{Z + E}
+%     }   
+%   }  
+% \]
+
+% \[
+%   \idK_X = \blue{\inl_{X,E}} : X \to X + E
+% \]  
+
+% \end{frame}
+
+
+
+\begin{frame}
+
+\frametitle{Sequential composition, with the right type}
+  
+$T$ -- a functor, for some kind of effect
+
+Effectful functions $X \to Y$ are the same as pure functions $X \to T Y$
+
+% \[  
+%   \infer={k : X \tto T Y}{
+%     k : X \ttoK Y
+%   }  
+% \]
+  
+\[    
+  \infer*[?]{\ns{k \seqK \ell = ? :} X \tto T Z}{
+    k : X \tto \redb{T Y} 
+    &
+    \ell : \redb{Y} \tto T Z
+  }
+\]
+
+\[    
+  \infer*[?]{\ns{k \seqK \ell = ? :} X \tto \redb{T Z}}{
+    k : X \tto \greenb{T Y} 
+    &
+    \infer{T \ell : \greenb{T Y} \tto \redb{T (T Z)}}{
+      \ell : Y \tto T Z
+    }  
+  }
+\]
+
+\end{frame}
+
+\frametitle{Sequential computation, with the right type}
+
+\begin{frame}
+
+\[
+  \infer{k \seqK \ell := k \seq T \ell \seq \mu_Z : X \tto T Z}{
+    k : X \tto \greenb{T Y}
+    &
+    \infer{T \ell \seq \mu_Z  : \greenb{T Y} \tto \greenb{T Z}}{
+       \infer{T \ell : T Y \tto T (T Z)}{
+         \ell : Y \tto T Z
+       }
+       &
+       \blue{\mu_Z : T (T Z) \tto T Z} 
+    }   
+  }  
+\]
+
+\[
+  \idK_X := \blue{\eta_X : X \tto T X}
+\]
+  
+\end{frame}
+
+
+\begin{frame}
+
+\frametitle{Sequential computation, with the right equations}
+
+
+\[
+  \infer{(k \seqK \ell) \seqK m = k \seqK (\ell \seqK m)}{
+    \infer{\vdots}{
+      \blue{\mu_{TX} \seq \mu_X = T \mu_X \seq \mu_X}
+    }
+  }  
+\]  
+
+
+\[
+  \infer{\idK_X \seqK k = k}{
+    \infer{\vdots}{
+      \blue{\eta_{TX} \seq \mu_X = \id_{TX}}
+    }
+  } 
+\]
+
+\[
+  \infer{k = k \seqK \idK_X}{
+    \infer{\vdots}{
+      \blue{\id_{TX} = T \eta_X \seq \mu_X}
+    }
+  } 
+\]
+
+\end{frame}  
+
+
+\begin{frame}
+
+\frametitle{A concurrent monad's mission}
+
+ A concurrent monad provides
+
+  \begin{itemize}
+
+  \item combinators for sequential and parallel composition \\
+    of functions with some kind of effect
+
+  \item guarantees that they are sensible:
+
+  \begin{itemize}
+
+  \item with the right typing
+
+  \item with the right (in)equational properties
+    \footnote{if the concurrent monad is a concurrent monad indeed} \\
+  \gray{(= both monotone, both associative, \\
+  interrelating via inequational interchange)}
+
+  \end{itemize}
+  \end{itemize}
+
+\end{frame}  
+
+\begin{frame}
+
+\frametitle{Parallel composition, with the right typing}
+
+\[
+  \infer*[?]{X \times U \tto \redb{T (Y \times V)}}{
+    \infer{k \times \ell : X \times U \tto \redb{T Y \times T V}}{
+      k : X \tto T Y
+      & 
+      \ell : U \tto T V
+    }  
+  }
+\]
+
+\[
+  \infer{\emb{k \prl \ell} := k \times \ell \seq \phi_{Y,V} : X \times U \tto T (Y \times V)}{
+    \infer{k \times \ell : X \times U \tto T Y \times T V}{
+      k : X \tto T Y
+      & 
+      \ell : U \tto T V
+    }
+    &
+    \blue{\phi_{Y,V} : T Y \times T V \tto T (Y \times V)} 
+  }
+\]
+
+\[
+\emb{\jd} := \blue{\phi^0 : 1 \tto T 1}
+\]  
+
+\end{frame}
+  
+
+\begin{frame}[fragile]
+
+\frametitle{Concurrent monads in Haskell, reader, state}
+
+\scriptsize
+\begin{verbatim}
+class Functor t => Lmf t where
+  nil :: () -> t ()
+  merge :: (t x, t y) -> t (x, y)
+
+class (Monad t, Lmf t) => ConcurMnd t where
+
+newtype Reader s x = R (s -> x)
+
+instance Lmf (Reader s) where
+  nil () = R (\ _ -> ())
+  merge (R f, R g) = R (\ s -> (f s, g s))
+
+instance ConcurMnd (Reader s)
+
+instance MeetSemi s => Lmf (State s) where
+  nil () = S (\ _ -> (top, ()))
+  merge (S f, S g) = S (\ s -> let ((s0, x), (s1, y)) = (f s, g s) in (meet (s0, s1), (x, y)))    
+
+instance MeetSemi s => ConcurMnd (State s)
+
+\end{verbatim}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+  \frametitle{A concurrent monad of resumptions for shared state
+    and interleaving}
+
+\scriptsize
+  
+\begin{verbatim}
+data Res s x = Ret x | Grab (s -> [(s, Res s x)])
+
+instance Mnd (Res s) where 
+  return x = Ret x
+  join (Ret r)  = r
+  join (Grab k) = Grab (\ s -> [ (s', join r) | (s', r) <- k s ])
+
+instance Lmf (Res s) where
+  nil () = Ret ()
+  merge (Ret x, Ret y)  = Ret (x, y)
+  merge (Ret x, Grab l) =
+    Grab (\ s -> [ (s', merge (Ret x, r)  | (s', r) <- l s ])
+  merge (Grab k, Ret y) = 
+    Grab (\ s -> [ (s', merge (r, Ret y)  | (s', r) <- k s ])
+  merge (Grab k, Grab l) =
+    Grab (\ s -> [ (s', merge (r, Grab l) | (s', r) <- k s ]
+              ++ [ (s', merge (Grab k, r) | (s', r) <- l s ])
+\end{verbatim}
+  
+\end{frame}
+
+
+\begin{frame}
+
+\frametitle{We saw}
+
+  \ema{Parallel composition} is as fundamental as sequential
+  composition, \\ also for effectful functions
+
+  \ema{Monads} axiomatize only sequential composition
+
+\bigskip  
+
+  \ema{Concurrent monads} axiomatize both compositions
+  
+  The two compositions interrelate via \ema{inequational interchange}
+
+  This presupposes an \ema{order} on functions between the
+  same types
+
+\end{frame}
+
+
+\begin{frame}
+
+\frametitle{We also learned}
+
+
+  Concurrent monads relax \ema{commutative monads}, \\
+  which have equational interchange
+
+\bigskip
+  
+  Concurrent monads differ from \ema{strong monads}, \\
+  which support parallel
+  composition only of an effectful function and a pure
+  function, \\ with equational interchange
+
+  
+\end{frame}
+  
+
+\begin{frame}
+
+\frametitle{We did not see}
+
+  Concurrent monads are concurrent monoids in the right place \\
+  \gray{(a
+  suitable ordered duoidal category)}
+
+  Concurrent monads are (2-categorical) monads in the right place \\
+  \gray{(a suitable 2-category)}
+
+  Concurrent monads are meaningfully definable also for orders
+  between effectful functions only
+  
+\end{frame}
+
+
+
+\begin{frame}
+
+\frametitle{For more information}
+
+  E Rivas, M Jaskelioff, preprint 2019
+
+  H Paquet, P Saville, LICS '24
+
+  E Rivas, T Uustalu, PPDP '24
+
+  F Breuvart, H Paquet, FSCD '25
+
+  B Gunnarsson, U of Iceland MSc thesis '26
+
+\end{frame}  
+
+
+
+\end{document}
